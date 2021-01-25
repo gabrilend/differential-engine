@@ -5,11 +5,6 @@ struct Name(String);
 
 pub struct HelloPlugin;
 
-fn hello_world() {
-    println!("hello world!");
-}
-
-
 // Creates a
 fn add_people(commands: &mut Commands) {
     commands
@@ -18,7 +13,16 @@ fn add_people(commands: &mut Commands) {
         .spawn((Person, Name("Zayna Nieves".to_string())));
 }
 
-fn greet_people(query: Query<&Name, With<Person>>) {
+struct GreetTimer(Timer);
+
+fn greet_people(
+    time: Res<Time>, mut timer: ResMut<GreetTimer>, query: Query<&Name, With<Person>>) {
+    // update our timer with the time elapsed since the last update
+    // if the timer hasn't finished yet, we return
+    if !timer.0.tick(time.delta_seconds()).just_finished() {
+        return;
+    }
+
     for name in query.iter() {
         println!("hello {}!", name.0);
     }
@@ -26,8 +30,9 @@ fn greet_people(query: Query<&Name, With<Person>>) {
 
 impl Plugin for HelloPlugin {
     fn build(&self, app: &mut AppBuilder) {
-        app.add_startup_system(add_people.system())
-            .add_system(hello_world.system())
+        // the reason we call from_seconds with the true flag is to make the timer repeat itself
+        app.add_resource(GreetTimer(Timer::from_seconds(2.0, true)))
+            .add_startup_system(add_people.system())
             .add_system(greet_people.system());
     }
 }
